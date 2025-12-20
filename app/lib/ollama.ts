@@ -16,6 +16,9 @@ type OllamaRequest = {
   model: string;
   prompt: string;
   stream: boolean;
+  options?: {
+    temperature?: number;
+  };
 };
 
 type OllamaResponse = {
@@ -35,6 +38,9 @@ export async function generateWithOllama(prompt: string): Promise<string> {
     model: MODEL,
     prompt: prompt,
     stream: false, // We'll keep it simple for now, no streaming
+    options: {
+      temperature: 0.7, // Add some variety to responses
+    },
   };
 
   const response = await fetch(`${OLLAMA_BASE_URL}/api/generate`, {
