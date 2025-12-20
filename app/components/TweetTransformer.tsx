@@ -3,13 +3,40 @@
 import { useState } from "react";
 
 export default function TweetTransformer() {
+  // State management
   const [draftTweet, setDraftTweet] = useState("");
   const [transformedTweet, setTransformedTweet] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
 
+  // Call the transform API
   const handleTransform = async () => {
-    // TODO: Call API in Chapter 1.5
-    console.log("Transform clicked!", draftTweet);
+    // Reset states
+    setError("");
+    setTransformedTweet("");
+    setIsLoading(true);
+
+    try {
+      const response = await fetch("/api/transform", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ draft: draftTweet }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Something went wrong");
+      }
+
+      setTransformedTweet(data.transformed);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to transform tweet");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const charCount = draftTweet.length;
@@ -48,6 +75,13 @@ export default function TweetTransformer() {
       >
         {isLoading ? "Transforming..." : "Transform"}
       </button>
+
+      {/* Error Message */}
+      {error && (
+        <p className="text-center text-sm text-red-400">
+          {error}
+        </p>
+      )}
 
       {/* Output Section */}
       {transformedTweet && (
