@@ -21,11 +21,23 @@ export async function POST(request: NextRequest) {
     }
 
     // 3. Build the prompt for the LLM
-    const prompt = `You are a tweet formatter. Take the following draft tweet and make it cleaner, more engaging, and well-formatted. Keep it under 280 characters.
+    const prompt = `You are a tweet rewriter. Transform the draft tweet below following these rules:
+
+STYLE:
+- Lead with value, not fluff
+- Sound human and authentic, not "markety"
+- Be confident but friendly
+- Create curiosity without clickbait
+
+STRUCTURE:
+- Start with a hook that grabs attention
+- Highlight the problem it solves or the insight it shares
+- End with a natural CTA or open question if relevant
+- Keep under 280 characters
 
 Draft: ${draft}
 
-Return only the improved tweet, nothing else.`;
+Return only the improved tweet, nothing else. No quotes, no explanations.`;
 
     // 4. Call Ollama
     const transformedTweet = await generateWithOllama(prompt);
