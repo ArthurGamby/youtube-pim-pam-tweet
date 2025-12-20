@@ -8,9 +8,9 @@ import { generateWithOllama } from "@/app/lib/ollama";
  */
 export async function POST(request: NextRequest) {
   try {
-    // 1. Get the draft tweet from the request body
+    // 1. Get the draft tweet and context from the request body
     const body = await request.json();
-    const { draft } = body;
+    const { draft, context } = body;
 
     // 2. Validate input
     if (!draft || typeof draft !== "string") {
@@ -20,9 +20,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 3. Build the prompt for the LLM
-    const prompt = `You are a tweet rewriter. Transform the draft tweet below following these rules:
+    // 3. Build the context section if provided
+    const contextSection = context 
+      ? `\nABOUT THE AUTHOR:\n${context}\n` 
+      : "";
 
+    // 4. Build the prompt for the LLM
+    const prompt = `You are a tweet rewriter. Transform the draft tweet below following these rules:
+${contextSection}
 STYLE:
 - Lead with value, not fluff
 - Sound human and authentic, not "markety"
@@ -39,10 +44,10 @@ Draft: ${draft}
 
 Return only the improved tweet, nothing else. No quotes, no explanations.`;
 
-    // 4. Call Ollama
+    // 5. Call Ollama
     const transformedTweet = await generateWithOllama(prompt);
 
-    // 5. Return the result
+    // 6. Return the result
     return NextResponse.json({ 
       transformed: transformedTweet.trim() 
     });

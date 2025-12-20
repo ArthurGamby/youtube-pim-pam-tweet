@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
+import ContextSettings from "./ContextSettings";
 
 export default function TweetTransformer() {
   // State management
@@ -8,6 +9,12 @@ export default function TweetTransformer() {
   const [transformedTweet, setTransformedTweet] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const [context, setContext] = useState("");
+
+  // Memoized callback for context changes
+  const handleContextChange = useCallback((newContext: string) => {
+    setContext(newContext);
+  }, []);
 
   // Call the transform API
   const handleTransform = async () => {
@@ -22,7 +29,10 @@ export default function TweetTransformer() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ draft: draftTweet }),
+        body: JSON.stringify({ 
+          draft: draftTweet,
+          context: context, // Send context to API
+        }),
       });
 
       const data = await response.json();
@@ -44,6 +54,9 @@ export default function TweetTransformer() {
 
   return (
     <div className="w-full space-y-6">
+      {/* Context Settings */}
+      <ContextSettings onContextChange={handleContextChange} />
+
       {/* Input Section */}
       <div className="space-y-2">
         <label 
