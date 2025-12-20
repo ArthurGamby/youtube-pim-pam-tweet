@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { generateWithOllama } from "@/app/lib/ollama";
 
+// Filter types
+type Filters = {
+  maxChars?: number;      // 100-280
+  emojiMode?: "none" | "few" | "many";
+};
+
 /**
  * POST /api/transform
  * 
@@ -8,9 +14,13 @@ import { generateWithOllama } from "@/app/lib/ollama";
  */
 export async function POST(request: NextRequest) {
   try {
-    // 1. Get the draft tweet and context from the request body
+    // 1. Get the draft tweet, context, and filters from the request body
     const body = await request.json();
-    const { draft, context } = body;
+    const { draft, context, filters } = body as { 
+      draft: string; 
+      context?: string; 
+      filters?: Filters;
+    };
 
     // 2. Validate input
     if (!draft || typeof draft !== "string") {
@@ -20,34 +30,50 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 3. Build the context section if provided
+    // 3. Extract filter values
+    const maxChars = filters?.maxChars ?? 280;
+    const emojiMode = filters?.emojiMode ?? "few";
+
+    // 4. Build emoji instruction
+    let emojiRule = "";
+    switch (emojiMode) {
+      case "none":
+        emojiRule = "Do NOT use any emojis.";
+        break;
+      case "few":
+        emojiRule = "Use 1-2 emojis maximum.";
+        break;
+      case "many":
+        emojiRule = "Use emojis to add personality.";
+        break;
+    }
+
+    // 5. Build context section
     const contextSection = context 
-      ? `\nABOUT THE AUTHOR:\n${context}\n` 
+      ? `\nAuthor style: ${context}\n` 
       : "";
 
-    // 4. Build the prompt for the LLM
-    const prompt = `You are a tweet rewriter. Transform the draft tweet below following these rules:
+    // 6. Build the prompt - CONSTRAINTS FIRST
+    const prompt = `Rewrite this tweet.
+
+STRICT LIMITS:
+- Maximum ${maxChars} characters (THIS IS MANDATORY)
+- ${emojiRule}
+- No hashtags
 ${contextSection}
-STYLE:
-- Lead with value, not fluff
-- Sound human and authentic, not "markety"
-- Be confident but friendly
-- Create curiosity without clickbait
+GUIDELINES:
+- Lead with value
+- Sound human, not markety
+- Be engaging
 
-STRUCTURE:
-- Start with a hook that grabs attention
-- Highlight the problem it solves or the insight it shares
-- End with a natural CTA or open question if relevant
-- Keep under 280 characters
+Draft: "${draft}"
 
-Draft: ${draft}
+Respond with ONLY the rewritten tweet. No quotes, no explanation.`;
 
-Return only the improved tweet, nothing else. No quotes, no explanations.`;
-
-    // 5. Call Ollama
+    // 7. Call Ollama
     const transformedTweet = await generateWithOllama(prompt);
 
-    // 6. Return the result
+    // 8. Return the result
     return NextResponse.json({ 
       transformed: transformedTweet.trim() 
     });
@@ -61,4 +87,3 @@ Return only the improved tweet, nothing else. No quotes, no explanations.`;
     );
   }
 }
-
