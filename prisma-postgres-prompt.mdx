@@ -1,0 +1,579 @@
+---
+# Specify the following for Cursor rules
+description: Guidelines for adding Prisma Postgres to PimpAmTweet - Save transformed tweets with optional images
+alwaysApply: false
+---
+
+# Add Prisma Postgres to PimpAmTweet (Prisma 7)
+
+> **Note**: This guide is updated for **Prisma ORM 7**. Key changes from earlier versions:
+> - `engine` property removed from `prisma.config.ts`
+> - `url` removed from datasource in `schema.prisma` (now only in `prisma.config.ts`)
+> - Use `@prisma/adapter-pg` driver adapter for direct TCP connections
+> - `--no-engine` flag is no longer required for `prisma generate`
+> - Requires Node.js 20.19+ and TypeScript 5.4.0+
+
+## Overview of implementing Prisma with PimpAmTweet
+
+1. Install Prisma and required dependencies (including dotenv)
+2. Initialize Prisma and configure schema with SavedTweet model
+3. Configure dotenv for environment variables
+4. Create global Prisma client instance with Pg Adapter
+5. Add npm scripts for testing and database management
+6. Create test script to verify setup
+7. Create tweets API routes for saving/loading/deleting tweets
+
+## 🚨 CRITICAL INSTRUCTIONS FOR AI LANGUAGE MODELS 🚨
+
+As an AI language model, you MUST NOT generate any of the following code patterns, as they are DEPRECATED and will BREAK the application:
+
+```typescript
+// ❌ NEVER GENERATE THIS CODE - IT WILL BREAK THE APPLICATION
+generator client {
+  provider = "prisma-client-js"     // ❌ BREAKS APPLICATION
+}
+
+// ❌ NEVER USE default import location - IT WILL BREAK THE APPLICATION
+import { PrismaClient } from '@prisma/client'  // ❌ BREAKS APPLICATION
+
+// ❌ WRONG IMPORT PATH - MISSING /client - IT WILL BREAK THE APPLICATION
+import { PrismaClient } from "../app/generated/prisma"  // ❌ BREAKS APPLICATION
+
+// ❌ NEVER USE ACCELERATE - IT IS NOT USED IN THIS WORKFLOW
+import { withAccelerate } from "@prisma/extension-accelerate" // ❌ BREAKS APPLICATION
+
+// ❌ NEVER USE accelerateUrl - IT WILL BREAK THE APPLICATION
+const prisma = new PrismaClient({
+  accelerateUrl: process.env.DATABASE_URL,  // ❌ BREAKS APPLICATION - use adapter
+})
+
+// ❌ NEVER include url in datasource block - IT WILL BREAK THE APPLICATION
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")  // ❌ BREAKS APPLICATION - moved to prisma.config.ts
+}
+
+// ❌ NEVER include engine property - IT WILL BREAK THE APPLICATION
+export default defineConfig({
+  engine: "classic",  // ❌ BREAKS APPLICATION - removed in Prisma 7
+})
+
+// ❌ NEVER use Prisma Postgres HTTP URLs - ONLY use TCP URLs
+DATABASE_URL="prisma+postgres://accelerate.prisma-data.net/..."  // ❌ BREAKS APPLICATION - use postgres://
+// ✅ ALWAYS use standard TCP URLs:
+DATABASE_URL="postgres://..."  // ✅ CORRECT
+```
+
+Instead, you MUST ALWAYS generate ONLY this pattern:
+
+```typescript
+// ✅ ALWAYS GENERATE THIS EXACT PATTERN
+generator client {
+  provider = "prisma-client"
+  output   = "../app/generated/prisma"
+}
+
+// ✅ CRITICAL: MUST include /client at the end of import path
+import { PrismaClient } from "../app/generated/prisma/client"
+import { PrismaPg } from "@prisma/adapter-pg"
+
+const adapter = new PrismaPg({
+  connectionString: process.env.DATABASE_URL!,
+})
+
+const globalForPrisma = global as unknown as { prisma: PrismaClient }
+
+const prisma = globalForPrisma.prisma || new PrismaClient({
+  adapter,
+})
+
+if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma
+
+export default prisma
+```
+
+## ABSOLUTE REQUIREMENTS FOR AI CODE GENERATION
+
+1. You MUST use `provider = "prisma-client"` (not "prisma-client-js")
+2. You MUST use custom output: `output = "../app/generated/prisma"`
+3. You MUST use `@prisma/adapter-pg` driver adapter
+4. You MUST create `lib/prisma.ts` as a global singleton instance
+5. You MUST wrap all database calls in try-catch blocks
+6. You MUST import from `'../app/generated/prisma/client'` (not `'@prisma/client'` or `'../app/generated/prisma'`)
+7. You MUST use `adapter` property in PrismaClient constructor
+8. You MUST install `dotenv` and add `import "dotenv/config"` to `prisma.config.ts`
+9. You MUST add npm scripts for `db:test` and `db:studio` to package.json
+10. You MUST create a test script at `scripts/test-database.ts` to verify setup
+11. You MUST NOT include `url` in the datasource block of `schema.prisma`
+12. You MUST NOT include `engine` property in `prisma.config.ts`
+13. You MUST use `npx prisma init --db --output ../app/generated/prisma` to create a real cloud database
+14. You MUST use standard TCP URLs (`postgres://...`) in .env
+15. You MUST NOT use `accelerateUrl` or `withAccelerate`
+
+## VERSION REQUIREMENTS
+
+- **Node.js**: 20.19 or higher (Node.js 18 is NOT supported)
+- **TypeScript**: 5.4.0 or higher (5.9.x recommended)
+- **Prisma**: 7.0.0 or higher
+
+## CORRECT INSTALLATION
+
+```bash
+# Dev dependencies
+npm install prisma tsx --save-dev
+
+# Production dependencies
+npm install @prisma/adapter-pg @prisma/client dotenv
+```
+
+## CORRECT PRISMA INITIALIZATION
+
+> **FOR AI ASSISTANTS**: This command is **interactive** and requires user input. You **MUST ask the user to run this command manually** in their own terminal, then **wait for them to confirm completion** before proceeding with the next steps. Do NOT attempt to run this command yourself.
+
+```bash
+# Initialize Prisma AND create a real Prisma Postgres cloud database
+npx prisma init --db --output ../app/generated/prisma
+```
+
+This command:
+- Authenticates you with Prisma Console (if needed)
+- Prompts for **region** and **project name**
+- **Creates a cloud Prisma Postgres database**
+- Generates:
+  - `prisma/schema.prisma` (with correct output path)
+  - `prisma.config.ts` (with dotenv import)
+  - **`.env` with a `DATABASE_URL`**
+
+**IMPORTANT**: Ensure the generated `.env` uses a `postgres://` URL scheme. If it generates `prisma+postgres://`, replace it with the standard TCP connection string available in the Prisma Console.
+
+```env
+DATABASE_URL="postgres://..."
+```
+
+**IMPORTANT**: Do NOT use `npx prisma init` without `--db` as this only creates local files without a database.
+
+## CORRECT PRISMA CONFIG (prisma.config.ts)
+
+When using `npx prisma init --db`, the `prisma.config.ts` is **auto-generated** with the correct configuration:
+
+```typescript
+import "dotenv/config"  // ✅ Auto-included by prisma init --db
+import { defineConfig, env } from "prisma/config"
+
+export default defineConfig({
+  schema: "prisma/schema.prisma",
+  migrations: {
+    path: "prisma/migrations",
+  },
+  // ✅ NO engine property - removed in Prisma 7
+  datasource: {
+    url: env("DATABASE_URL"),
+  },
+})
+```
+
+**Note**: If you need to manually create this file, ensure `import "dotenv/config"` is at the top.
+
+## CORRECT SCHEMA CONFIGURATION (prisma/schema.prisma)
+
+Update the generated `prisma/schema.prisma` file:
+
+```prisma
+generator client {
+  provider = "prisma-client"
+  output   = "../app/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  // ✅ NO url here - now configured in prisma.config.ts
+}
+
+// SavedTweet model for PimpAmTweet
+model SavedTweet {
+  id          String   @id @default(cuid())
+  original    String   // The draft tweet input
+  transformed String   // The polished/transformed tweet
+  context     String?  // Optional user context/style used for transformation
+  imageUrl    String?  // Optional image URL attached to the tweet
+  imageAlt    String?  // Optional alt text for accessibility
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+```
+
+## CORRECT GLOBAL PRISMA CLIENT
+
+Create `lib/prisma.ts` file:
+
+```typescript
+import { PrismaClient } from "../app/generated/prisma/client"  // ✅ CRITICAL: Include /client
+import { PrismaPg } from "@prisma/adapter-pg"
+
+const adapter = new PrismaPg({
+  connectionString: process.env.DATABASE_URL!,
+})
+
+const globalForPrisma = global as unknown as { prisma: PrismaClient }
+
+const prisma = globalForPrisma.prisma || new PrismaClient({
+  adapter,
+})
+
+if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma
+
+export default prisma
+```
+
+## ADD NPM SCRIPTS TO PACKAGE.JSON
+
+Update your `package.json` to include these scripts:
+
+```json
+{
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint",
+    "db:test": "tsx scripts/test-database.ts",
+    "db:studio": "prisma studio"
+  }
+}
+```
+
+## CREATE TEST SCRIPT
+
+Create `scripts/test-database.ts` to verify your setup:
+
+```typescript
+import "dotenv/config"  // ✅ CRITICAL: Load environment variables
+import prisma from "../lib/prisma"
+
+async function testDatabase() {
+  console.log("🔍 Testing Prisma Postgres connection...\n")
+
+  try {
+    // Test 1: Check connection
+    console.log("✅ Connected to database!")
+
+    // Test 2: Create a test saved tweet
+    console.log("\n📝 Creating a test saved tweet...")
+    const newTweet = await prisma.savedTweet.create({
+      data: {
+        original: "just shipped a new feature, its pretty cool i think",
+        transformed: "Just shipped a new feature! 🚀 Pretty excited about this one ✨",
+        context: "Tech founder, casual tone",
+        imageUrl: null,
+        imageAlt: null,
+      },
+    })
+    console.log("✅ Created saved tweet:", newTweet)
+
+    // Test 3: Fetch all saved tweets
+    console.log("\n📋 Fetching all saved tweets...")
+    const allTweets = await prisma.savedTweet.findMany()
+    console.log(`✅ Found ${allTweets.length} saved tweet(s):`)
+    allTweets.forEach((tweet) => {
+      console.log(`   - Original: "${tweet.original.substring(0, 40)}..."`)
+      console.log(`     Transformed: "${tweet.transformed.substring(0, 40)}..."`)
+    })
+
+    console.log("\n🎉 All tests passed! Your database is working perfectly.\n")
+  } catch (error) {
+    console.error("❌ Error:", error)
+    process.exit(1)
+  }
+}
+
+testDatabase()
+```
+
+## CORRECT API ROUTE IMPLEMENTATION (App Router)
+
+Create `app/api/tweets/route.ts` with GET, POST, and DELETE handlers:
+
+```typescript
+import { NextRequest, NextResponse } from "next/server"
+import prisma from "../../../lib/prisma"
+
+// GET all saved tweets
+export async function GET(request: NextRequest) {
+  try {
+    const tweets = await prisma.savedTweet.findMany({
+      orderBy: { createdAt: "desc" },
+    })
+    return NextResponse.json(tweets)
+  } catch (error) {
+    console.error("Error fetching tweets:", error)
+    return NextResponse.json(
+      { error: "Failed to fetch tweets" },
+      { status: 500 }
+    )
+  }
+}
+
+// POST save a new tweet
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json()
+    const tweet = await prisma.savedTweet.create({
+      data: {
+        original: body.original,
+        transformed: body.transformed,
+        context: body.context || null,
+        imageUrl: body.imageUrl || null,
+        imageAlt: body.imageAlt || null,
+      },
+    })
+    return NextResponse.json(tweet, { status: 201 })
+  } catch (error) {
+    console.error("Error saving tweet:", error)
+    return NextResponse.json(
+      { error: "Failed to save tweet" },
+      { status: 500 }
+    )
+  }
+}
+
+// DELETE a saved tweet by id
+export async function DELETE(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url)
+    const id = searchParams.get("id")
+    
+    if (!id) {
+      return NextResponse.json(
+        { error: "Tweet ID is required" },
+        { status: 400 }
+      )
+    }
+
+    await prisma.savedTweet.delete({
+      where: { id },
+    })
+    return NextResponse.json({ success: true })
+  } catch (error) {
+    console.error("Error deleting tweet:", error)
+    return NextResponse.json(
+      { error: "Failed to delete tweet" },
+      { status: 500 }
+    )
+  }
+}
+```
+
+## USAGE IN SERVER COMPONENTS
+
+To use Prisma in server components, import the global instance and wrap calls in try-catch:
+
+```typescript
+import prisma from "../../lib/prisma"
+
+// Example: Fetch all saved tweets
+const tweets = await prisma.savedTweet.findMany({
+  orderBy: { createdAt: "desc" },
+})
+```
+
+**Note**: Frontend components for displaying saved tweets and handling images will be created separately.
+
+## COMPLETE SETUP WORKFLOW
+
+User should follow these steps (AI should provide these instructions):
+
+1. **Install dependencies**:
+   ```bash
+   npm install prisma tsx --save-dev
+   npm install @prisma/adapter-pg @prisma/client dotenv
+   ```
+
+2. **Initialize Prisma AND create Prisma Postgres database** (⚠️ USER MUST RUN MANUALLY):
+   
+   > **AI ASSISTANT**: Ask the user to run this command in their own terminal. This is interactive and requires user input. Wait for the user to confirm completion before continuing.
+   
+   ```bash
+   npx prisma init --db --output ../app/generated/prisma
+   ```
+   
+   The user should follow the terminal prompts to:
+   - Authenticate with Prisma Console (if needed)
+   - Choose a region (e.g., us-east-1)
+   - Name your project
+   
+   Once complete, this creates `prisma/schema.prisma`, `prisma.config.ts`, AND `.env` with the `DATABASE_URL`.
+   
+   **User should confirm when done** so the AI can proceed with the next steps.
+
+3. **Verify `.env` was created** - Ensure `DATABASE_URL` uses `postgres://`. If it uses `prisma+postgres://`, change it to the TCP connection string.
+   ```env
+   DATABASE_URL="postgres://..."
+   ```
+   **Do NOT invent or manually change this URL. Use the one from Prisma Console.**
+
+4. **Update `prisma/schema.prisma`** - Add the SavedTweet model (generator and datasource are already configured):
+   ```prisma
+   model SavedTweet {
+     id          String   @id @default(cuid())
+     original    String   // The draft tweet input
+     transformed String   // The polished/transformed tweet
+     context     String?  // Optional user context/style used for transformation
+     imageUrl    String?  // Optional image URL attached to the tweet
+     imageAlt    String?  // Optional alt text for accessibility
+     createdAt   DateTime @default(now())
+     updatedAt   DateTime @updatedAt
+   }
+   ```
+
+5. **Create `lib/prisma.ts`** with correct import path including `/client` and using `@prisma/adapter-pg`.
+
+6. **Add npm scripts** to `package.json` for `db:test` and `db:studio`
+
+7. **Create `scripts/test-database.ts`** test script
+
+8. **Push schema to database**:
+   ```bash
+   npx prisma db push
+   ```
+
+9. **Generate Prisma Client**:
+    ```bash
+    npx prisma generate
+    ```
+
+10. **Test the setup**:
+    ```bash
+    npm run db:test
+    ```
+
+11. **Start development server**:
+    ```bash
+    npm run dev
+    ```
+
+## AI MODEL VERIFICATION STEPS
+
+Before generating any code, you MUST verify:
+
+1. Are you using `provider = "prisma-client"` (not "prisma-client-js")? If not, STOP and FIX.
+2. Are you using `output = "../app/generated/prisma"`? If not, STOP and FIX.
+3. Are you importing from `'../app/generated/prisma/client'` (with `/client`)? If not, STOP and FIX.
+4. Did you add `import "dotenv/config"` to `prisma.config.ts`? If not, STOP and FIX.
+5. Did you add `import "dotenv/config"` to `scripts/test-database.ts`? If not, STOP and FIX.
+6. Are you using `@prisma/adapter-pg`? If not, STOP and FIX.
+7. Are you using `adapter` property in PrismaClient constructor? If not, STOP and FIX.
+8. Are you wrapping database operations in try-catch? If not, STOP and FIX.
+9. Did you create the test script at `scripts/test-database.ts`? If not, STOP and FIX.
+10. Did you add `db:test` and `db:studio` scripts to package.json? If not, STOP and FIX.
+11. Did you remove `url` from the datasource block in `schema.prisma`? If not, STOP and FIX.
+12. Did you remove `engine` property from `prisma.config.ts`? If not, STOP and FIX.
+13. Are you using `npx prisma init --db` (not just `npx prisma init`)? If not, STOP and FIX.
+14. Is the DATABASE_URL a TCP URL (`postgres://...`)? If it's a `prisma+postgres://` URL, STOP and FIX.
+15. Did Prisma generate the `.env` file? If you invented the URL manually, STOP and FIX.
+
+## CONSEQUENCES OF INCORRECT IMPLEMENTATION
+
+If you generate code using:
+
+- `prisma-client-js` provider → **CLIENT GENERATION FAILS**
+- Wrong import path (missing `/client`) → **MODULE NOT FOUND ERROR**
+- Missing `import "dotenv/config"` in prisma.config.ts → **DATABASE_URL NOT FOUND ERROR**
+- Missing `import "dotenv/config"` in test scripts → **ENVIRONMENT VARIABLE ERROR**
+- Default import from `@prisma/client` → **IMPORT ERROR**
+- Using `accelerateUrl` or `withAccelerate` → **UNNECESSARY ACCELERATE DEPENDENCY / CONFIG ERROR**
+- Missing custom output path → **WRONG CLIENT GENERATED**
+- Including `url` in datasource block → **DEPRECATED CONFIGURATION ERROR**
+- Including `engine` property → **DEPRECATED CONFIGURATION ERROR**
+- Using local URL (`postgres://localhost:...`) → **VERSION INCOMPATIBILITY ERRORS WITH PRISMA 7**
+- Using `npx prisma init` without `--db` → **NO DATABASE CREATED, ONLY LOCAL FILES**
+- Manually inventing DATABASE_URL → **INVALID CONNECTION STRING ERRORS**
+
+The implementation will:
+
+1. Break immediately with module errors
+2. Fail to read environment variables
+3. Cause connection pool exhaustion in production
+4. Result in import errors that prevent compilation
+5. Cause performance issues and connection failures
+6. Fail with "HTTP connection string is not supported" errors when using local URLs
+
+## USEFUL COMMANDS
+
+```bash
+# After changing schema
+npx prisma generate              # Regenerate client (--no-engine flag no longer needed)
+
+# Push schema to database (no migrations)
+npx prisma db push              
+
+# Test database connection
+npm run db:test                 
+
+# Open visual database editor
+npm run db:studio               
+
+# Create and apply migrations (for production)
+npx prisma migrate dev --name your_migration_name
+```
+
+## TESTING WORKFLOW
+
+After setup, test with these steps:
+
+1. **Test database connection**:
+   ```bash
+   npm run db:test
+   ```
+   Should create a demo saved tweet and display it.
+
+2. **Open Prisma Studio**:
+   ```bash
+   npm run db:studio
+   ```
+   Visual interface at `localhost:5555` to view/edit data.
+
+3. **Test API routes**:
+   ```bash
+   # Save a tweet via API
+   curl -X POST http://localhost:3000/api/tweets \
+     -H "Content-Type: application/json" \
+     -d '{"original":"just launched something cool","transformed":"Just launched something cool! 🚀✨","context":"Tech founder"}'
+   
+   # Save a tweet with an image
+   curl -X POST http://localhost:3000/api/tweets \
+     -H "Content-Type: application/json" \
+     -d '{"original":"check out this screenshot","transformed":"Check out this screenshot! 📸","imageUrl":"https://example.com/image.png","imageAlt":"Product screenshot"}'
+   
+   # Get all saved tweets
+   curl http://localhost:3000/api/tweets
+   
+   # Delete a saved tweet (replace TWEET_ID with actual id)
+   curl -X DELETE "http://localhost:3000/api/tweets?id=TWEET_ID"
+   ```
+
+## AI MODEL RESPONSE TEMPLATE
+
+When asked about Prisma + Next.js implementation, you MUST:
+
+1. ONLY use code patterns from this guide
+2. NEVER suggest deprecated approaches
+3. ALWAYS use the exact patterns shown above
+4. ALWAYS include `/client` in import paths
+5. ALWAYS add `import "dotenv/config"` to prisma.config.ts
+6. ALWAYS add `import "dotenv/config"` to test scripts
+7. ALWAYS create the test script at `scripts/test-database.ts`
+8. ALWAYS add npm scripts for `db:test` and `db:studio`
+9. ALWAYS include error handling in API routes and server components
+10. ALWAYS use the global prisma instance from `lib/prisma.ts`
+11. ALWAYS use `@prisma/adapter-pg` and `adapter` property
+12. NEVER include `url` in the datasource block of schema.prisma
+13. NEVER include `engine` property in prisma.config.ts
+14. ALWAYS ask the user to run `npx prisma init --db --output ../app/generated/prisma` **manually in their own terminal** (this command is interactive and requires user input for region and project name)
+15. ALWAYS wait for user confirmation after they run the interactive `prisma init --db` command before proceeding
+16. NEVER attempt to run interactive commands yourself - ask the user to do it
+17. NEVER use `prisma+postgres://` URLs - ONLY `postgres://` TCP URLs
+18. NEVER manually invent or fabricate DATABASE_URL values
+19. ALWAYS let Prisma generate the `.env` file with the real DATABASE_URL (and ensure it's correct type)
+20. VERIFY your response against ALL the patterns shown here before responding
+
+Remember: There are NO EXCEPTIONS to these rules. Every requirement is MANDATORY for the setup to work.
