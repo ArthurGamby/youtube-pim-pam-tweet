@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { Copy, Check, Bookmark, Loader2 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 
 type TweetPreviewProps = {
   content: string | null;
@@ -15,6 +15,15 @@ export default function TweetPreview({ content, original, context, isLoading }: 
   const [copied, setCopied] = useState(false);
   const [saved, setSaved] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const previousContentRef = useRef<string | null>(null);
+
+  // Reset saved state when content changes (new tweet generated)
+  useEffect(() => {
+    if (content !== previousContentRef.current) {
+      setSaved(false);
+      previousContentRef.current = content;
+    }
+  }, [content]);
 
   const handleCopy = async () => {
     if (!content) return;
@@ -43,7 +52,7 @@ export default function TweetPreview({ content, original, context, isLoading }: 
       }
 
       setSaved(true);
-      setTimeout(() => setSaved(false), 3000);
+      // No timeout - saved state persists until new tweet is generated
     } catch (error) {
       console.error("Error saving tweet:", error);
     } finally {
