@@ -6,6 +6,7 @@ import { FilterButton, FilterPanel, type Filters } from "./FilterOptions";
 import TweetPreview from "./TweetPreview";
 import LibraryButton from "./LibraryButton";
 import LibraryPanel from "./LibraryPanel";
+import AnimatedPanel from "./AnimatedPanel";
 
 const DEFAULT_FILTERS: Filters = {
   maxChars: 280,
@@ -126,13 +127,13 @@ export default function TweetTransformer() {
         />
       </div>
 
-      {/* Expanded Panel - Below the buttons row */}
-      {openPanel === "context" && (
+      {/* Expanded Panels - Animated collapse/expand */}
+      <AnimatedPanel isOpen={openPanel === "context"}>
         <ContextPanel onContextChange={handleContextChange} />
-      )}
-      {openPanel === "filters" && (
+      </AnimatedPanel>
+      <AnimatedPanel isOpen={openPanel === "filters"}>
         <FilterPanel filters={filters} onFiltersChange={setFilters} />
-      )}
+      </AnimatedPanel>
 
       {/* Input Section */}
       <div className="space-y-2">

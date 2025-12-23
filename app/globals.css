@@ -59,6 +59,8 @@
 
 html {
   background: var(--background);
+  overflow-x: hidden;
+  scrollbar-gutter: stable;
 }
 
 body {
