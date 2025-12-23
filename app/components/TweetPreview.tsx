@@ -1,22 +1,54 @@
 "use client";
 
 import Image from "next/image";
-import { Copy, Check } from "lucide-react";
+import { Copy, Check, Bookmark, Loader2 } from "lucide-react";
 import { useState } from "react";
 
 type TweetPreviewProps = {
   content: string | null;
+  original?: string;
+  context?: string;
   isLoading?: boolean;
 };
 
-export default function TweetPreview({ content, isLoading }: TweetPreviewProps) {
+export default function TweetPreview({ content, original, context, isLoading }: TweetPreviewProps) {
   const [copied, setCopied] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   const handleCopy = async () => {
     if (!content) return;
     await navigator.clipboard.writeText(content);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleSave = async () => {
+    if (!content || !original || isSaving || saved) return;
+    setIsSaving(true);
+
+    try {
+      const response = await fetch("/api/tweets", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          original,
+          transformed: content,
+          context: context || null,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to save");
+      }
+
+      setSaved(true);
+      setTimeout(() => setSaved(false), 3000);
+    } catch (error) {
+      console.error("Error saving tweet:", error);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   // 3 states: empty, loading, content
@@ -29,22 +61,65 @@ export default function TweetPreview({ content, isLoading }: TweetPreviewProps) 
           Result
         </label>
         {hasContent && (
-          <button
-            onClick={handleCopy}
-            className="flex items-center gap-1.5 text-xs text-muted transition-colors hover:text-foreground"
-          >
-            {copied ? (
-              <>
-                <Check size={12} />
-                Copied
-              </>
-            ) : (
-              <>
-                <Copy size={12} />
-                Copy
-              </>
-            )}
-          </button>
+          <div className="flex items-center gap-1">
+            {/* Save Button */}
+            <button
+              onClick={handleSave}
+              disabled={isSaving || saved}
+              className={`
+                group relative flex items-center gap-1.5 rounded-md px-2 py-1 text-xs
+                transition-all duration-200 ease-out
+                ${saved 
+                  ? "bg-emerald-500/10 text-emerald-400" 
+                  : "text-muted hover:bg-foreground/5 hover:text-foreground"
+                }
+                ${isSaving ? "cursor-wait" : ""}
+              `}
+            >
+              <span className="relative flex items-center justify-center w-3 h-3">
+                {isSaving ? (
+                  <Loader2 size={12} className="animate-spin" />
+                ) : saved ? (
+                  <Check size={12} className="animate-in zoom-in-50 duration-200" />
+                ) : (
+                  <Bookmark 
+                    size={12} 
+                    className="transition-transform duration-200 group-hover:scale-110" 
+                  />
+                )}
+              </span>
+              <span className="transition-opacity duration-200">
+                {isSaving ? "Saving" : saved ? "Saved" : "Save"}
+              </span>
+            </button>
+
+            <span className="text-border mx-1">·</span>
+
+            {/* Copy Button */}
+            <button
+              onClick={handleCopy}
+              className={`
+                group flex items-center gap-1.5 rounded-md px-2 py-1 text-xs
+                transition-all duration-200 ease-out
+                ${copied 
+                  ? "text-foreground" 
+                  : "text-muted hover:bg-foreground/5 hover:text-foreground"
+                }
+              `}
+            >
+              <span className="relative flex items-center justify-center w-3 h-3">
+                {copied ? (
+                  <Check size={12} className="animate-in zoom-in-50 duration-200" />
+                ) : (
+                  <Copy 
+                    size={12} 
+                    className="transition-transform duration-200 group-hover:scale-110" 
+                  />
+                )}
+              </span>
+              <span>{copied ? "Copied" : "Copy"}</span>
+            </button>
+          </div>
         )}
       </div>
       

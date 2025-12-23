@@ -136,7 +136,12 @@ export default function TweetTransformer() {
 
       {/* Output Section - Always visible */}
       <div className="mt-6 border-t border-border pt-6">
-        <TweetPreview content={transformedTweet || null} isLoading={isLoading} />
+        <TweetPreview 
+          content={transformedTweet || null} 
+          original={draftTweet}
+          context={context}
+          isLoading={isLoading} 
+        />
       </div>
     </div>
   );
