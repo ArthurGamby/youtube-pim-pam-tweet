@@ -9,9 +9,10 @@ type TweetPreviewProps = {
   original?: string;
   context?: string;
   isLoading?: boolean;
+  onSaveSuccess?: () => void;
 };
 
-export default function TweetPreview({ content, original, context, isLoading }: TweetPreviewProps) {
+export default function TweetPreview({ content, original, context, isLoading, onSaveSuccess }: TweetPreviewProps) {
   const [copied, setCopied] = useState(false);
   const [saved, setSaved] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -52,6 +53,7 @@ export default function TweetPreview({ content, original, context, isLoading }: 
       }
 
       setSaved(true);
+      onSaveSuccess?.(); // Notify parent to update count
       // No timeout - saved state persists until new tweet is generated
     } catch (error) {
       console.error("Error saving tweet:", error);

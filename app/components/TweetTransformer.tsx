@@ -4,6 +4,8 @@ import { useState, useCallback, useEffect } from "react";
 import { ContextButton, ContextPanel } from "./ContextSettings";
 import { FilterButton, FilterPanel, type Filters } from "./FilterOptions";
 import TweetPreview from "./TweetPreview";
+import LibraryButton from "./LibraryButton";
+import LibraryPanel from "./LibraryPanel";
 
 const DEFAULT_FILTERS: Filters = {
   maxChars: 280,
@@ -24,12 +26,40 @@ export default function TweetTransformer() {
   const [hasContext, setHasContext] = useState(false);
   const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS);
   const [openPanel, setOpenPanel] = useState<OpenPanel>("none");
+  
+  // Library state
+  const [isLibraryOpen, setIsLibraryOpen] = useState(false);
+  const [savedTweetsCount, setSavedTweetsCount] = useState(0);
 
-  // Load context indicator on mount
+  // Load context indicator and tweet count on mount
   useEffect(() => {
     const saved = localStorage.getItem(CONTEXT_STORAGE_KEY);
     setHasContext(!!saved);
+    
+    // Fetch saved tweets count
+    fetchTweetsCount();
   }, []);
+
+  const fetchTweetsCount = async () => {
+    try {
+      const response = await fetch("/api/tweets");
+      if (response.ok) {
+        const data = await response.json();
+        setSavedTweetsCount(data.length);
+      }
+    } catch (error) {
+      console.error("Error fetching tweets count:", error);
+    }
+  };
+
+  // Handle "use as draft" from library
+  const handleUseAsDraft = (original: string) => {
+    setDraftTweet(original);
+    setTransformedTweet(""); // Clear any existing transformed tweet
+  };
+
+  // Toggle library
+  const toggleLibrary = () => setIsLibraryOpen(!isLibraryOpen);
 
   // Memoized callback for context changes
   const handleContextChange = useCallback((newContext: string) => {
@@ -73,8 +103,17 @@ export default function TweetTransformer() {
 
   return (
     <div className="w-full space-y-3">
+      {/* Fixed Library Button - Top Right */}
+      <div className="fixed top-6 right-6 z-30">
+        <LibraryButton
+          count={savedTweetsCount}
+          isOpen={isLibraryOpen}
+          onClick={toggleLibrary}
+        />
+      </div>
+
       {/* Settings Row - Buttons always inline */}
-      <div className="flex gap-2">
+      <div className="flex items-center gap-2">
         <ContextButton
           isOpen={openPanel === "context"}
           onToggle={toggleContext}
@@ -140,9 +179,20 @@ export default function TweetTransformer() {
           content={transformedTweet || null} 
           original={draftTweet}
           context={context}
-          isLoading={isLoading} 
+          isLoading={isLoading}
+          onSaveSuccess={fetchTweetsCount}
         />
       </div>
+
+      {/* Library Panel */}
+      <LibraryPanel
+        isOpen={isLibraryOpen}
+        onClose={() => {
+          setIsLibraryOpen(false);
+          fetchTweetsCount(); // Refresh count in case tweets were deleted
+        }}
+        onUseAsDraft={handleUseAsDraft}
+      />
     </div>
   );
 }
