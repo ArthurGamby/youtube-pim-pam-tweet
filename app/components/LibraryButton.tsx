@@ -16,8 +16,8 @@ export default function LibraryButton({ count, isOpen, onClick }: LibraryButtonP
         relative flex items-center gap-1.5 rounded-lg border px-3 py-2 text-xs
         transition-all duration-200 ease-out
         ${isOpen
-          ? "border-foreground/20 bg-foreground/10 text-foreground"
-          : "border-border bg-card text-muted hover:border-muted/50 hover:text-foreground"
+          ? "border-accent/30 bg-accent/10 text-foreground"
+          : "border-border bg-card text-muted hover:border-accent/30 hover:text-foreground card-elevated"
         }
       `}
     >
@@ -30,8 +30,8 @@ export default function LibraryButton({ count, isOpen, onClick }: LibraryButtonP
           ml-1 flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] font-medium
           transition-colors duration-200
           ${isOpen
-            ? "bg-foreground/20 text-foreground"
-            : "bg-muted/20 text-muted"
+            ? "bg-accent/30 text-foreground"
+            : "bg-accent/20 text-accent"
           }
         `}>
           {count > 99 ? "99+" : count}

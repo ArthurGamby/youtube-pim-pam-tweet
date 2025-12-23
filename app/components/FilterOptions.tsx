@@ -17,8 +17,8 @@ export function FilterButton({ isOpen, onToggle, filters }: FilterButtonProps) {
   return (
     <button
       onClick={onToggle}
-      className={`flex flex-1 items-center justify-between rounded-lg border px-3 py-2.5 text-sm transition-colors ${
-        isOpen ? "border-muted bg-card" : "border-border bg-card hover:border-muted"
+      className={`flex flex-1 items-center justify-between rounded-lg border px-3 py-2.5 text-sm transition-colors card-elevated ${
+        isOpen ? "border-accent/30 bg-card" : "border-border bg-card hover:border-accent/30"
       }`}
     >
       <span className="flex items-center gap-2 text-muted">
@@ -43,7 +43,7 @@ type FilterPanelProps = {
 
 export function FilterPanel({ filters, onFiltersChange }: FilterPanelProps) {
   return (
-    <div className="flex flex-wrap items-center gap-4 rounded-lg border border-border bg-card px-4 py-3">
+    <div className="flex flex-wrap items-center gap-4 rounded-lg border border-border bg-card px-4 py-3 card-elevated">
       {/* Max Characters */}
       <div className="flex items-center gap-2">
         <label className="text-xs text-muted">Chars</label>
@@ -69,7 +69,7 @@ export function FilterPanel({ filters, onFiltersChange }: FilterPanelProps) {
           onClick={() => onFiltersChange({ ...filters, emojiMode: "none" })}
           className={`flex h-7 w-7 items-center justify-center rounded transition-colors ${
             filters.emojiMode === "none"
-              ? "bg-foreground text-background"
+              ? "bg-accent text-background"
               : "text-muted hover:bg-border"
           }`}
           title="No emojis"
@@ -80,7 +80,7 @@ export function FilterPanel({ filters, onFiltersChange }: FilterPanelProps) {
           onClick={() => onFiltersChange({ ...filters, emojiMode: "few" })}
           className={`flex h-7 w-7 items-center justify-center rounded transition-colors ${
             filters.emojiMode === "few"
-              ? "bg-foreground text-background"
+              ? "bg-accent text-background"
               : "text-muted hover:bg-border"
           }`}
           title="Few emojis"
@@ -91,7 +91,7 @@ export function FilterPanel({ filters, onFiltersChange }: FilterPanelProps) {
           onClick={() => onFiltersChange({ ...filters, emojiMode: "many" })}
           className={`flex h-7 w-7 items-center justify-center rounded transition-colors ${
             filters.emojiMode === "many"
-              ? "bg-foreground text-background"
+              ? "bg-accent text-background"
               : "text-muted hover:bg-border"
           }`}
           title="Many emojis"

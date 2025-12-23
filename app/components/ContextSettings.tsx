@@ -15,14 +15,14 @@ export function ContextButton({ isOpen, onToggle, hasContext }: { isOpen: boolea
   return (
     <button
       onClick={onToggle}
-      className={`flex flex-1 items-center justify-between rounded-lg border px-3 py-2.5 text-sm transition-colors ${
-        isOpen ? "border-muted bg-card" : "border-border bg-card hover:border-muted"
+      className={`flex flex-1 items-center justify-between rounded-lg border px-3 py-2.5 text-sm transition-colors card-elevated ${
+        isOpen ? "border-accent/30 bg-card" : "border-border bg-card hover:border-accent/30"
       }`}
     >
       <span className="flex items-center gap-2 text-muted">
         <User size={14} />
         <span>Context</span>
-        {hasContext && <span className="h-1.5 w-1.5 rounded-full bg-foreground" />}
+        {hasContext && <span className="h-1.5 w-1.5 rounded-full bg-accent" />}
       </span>
       <ChevronDown
         size={14}
@@ -55,7 +55,7 @@ export function ContextPanel({ onContextChange }: { onContextChange: (context: s
       onChange={(e) => handleContextChange(e.target.value)}
       placeholder="Your style: e.g., Developer, friendly tone, occasional emojis..."
       rows={2}
-      className="w-full resize-none rounded-lg border border-border bg-card px-4 py-3 text-sm text-foreground placeholder-muted/60 transition-colors focus:border-muted"
+      className="w-full resize-none rounded-lg border border-border bg-card px-4 py-3 text-sm text-foreground placeholder-muted/60 transition-colors focus:border-accent/50 card-elevated"
     />
   );
 }

@@ -1,5 +1,6 @@
 import Image from "next/image";
 import TweetTransformer from "./components/TweetTransformer";
+import ThemeSwitcher from "./components/ThemeSwitcher";
 
 export default function Home() {
   return (
@@ -24,7 +25,8 @@ export default function Home() {
       </main>
 
       {/* Footer */}
-      <footer className="mt-auto pt-16">
+      <footer className="mt-auto pt-16 flex flex-col items-center gap-4">
+        <ThemeSwitcher />
         <p className="text-[10px] uppercase tracking-widest text-muted/50">
           powered by ollama
         </p>

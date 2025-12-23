@@ -104,7 +104,7 @@ export default function LibraryPanel({ isOpen, onClose, onUseAsDraft }: LibraryP
             // Loading state
             <div className="space-y-3">
               {[1, 2, 3].map((i) => (
-                <div key={i} className="rounded-lg border border-border bg-card p-4 animate-pulse">
+                <div key={i} className="rounded-lg border border-border bg-card p-4 card-elevated animate-pulse">
                   <div className="h-4 w-[90%] rounded bg-border mb-2" />
                   <div className="h-4 w-[70%] rounded bg-border mb-3" />
                   <div className="h-6 w-full rounded bg-border/50" />

@@ -134,7 +134,7 @@ export default function TweetPreview({ content, original, context, isLoading, on
         )}
       </div>
       
-      <div className="rounded-lg border border-border bg-card p-4">
+      <div className="rounded-lg border border-border bg-card p-4 card-elevated">
         {/* Tweet Header */}
         <div className="mb-3 flex items-center gap-3">
           <Image

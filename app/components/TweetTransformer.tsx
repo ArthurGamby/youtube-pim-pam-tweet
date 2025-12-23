@@ -148,7 +148,7 @@ export default function TweetTransformer() {
           onChange={(e) => setDraftTweet(e.target.value)}
           placeholder="What's on your mind?"
           rows={4}
-          className="w-full resize-none rounded-lg border border-border bg-card px-4 py-3 text-sm text-foreground placeholder-muted transition-colors focus:border-muted"
+          className="w-full resize-none rounded-lg border border-border bg-card px-4 py-3 text-sm text-foreground placeholder-muted transition-colors focus:border-accent/50 card-elevated"
         />
         <div className="flex justify-end">
           <span className={`text-xs tabular-nums ${isOverLimit ? "text-red-400" : "text-muted"}`}>
@@ -161,7 +161,7 @@ export default function TweetTransformer() {
       <button
         onClick={handleTransform}
         disabled={!draftTweet.trim() || isLoading}
-        className="w-full rounded-lg bg-foreground px-6 py-3 text-sm font-medium text-background transition-all hover:bg-foreground/90 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40"
+        className="w-full rounded-lg bg-accent px-6 py-3 text-sm font-medium text-background transition-all hover:bg-accent-hover active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40"
       >
         {isLoading ? "Creating..." : "Create Social"}
       </button>

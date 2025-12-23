@@ -81,9 +81,9 @@ export default function SavedTweetCard({ tweet, onUseAsDraft, onDelete }: SavedT
     <div
       onClick={handleCardClick}
       className="
-        group cursor-pointer rounded-lg border border-border bg-card p-4
+        group cursor-pointer rounded-lg border border-border bg-card p-4 card-elevated
         transition-all duration-200 ease-out
-        hover:border-muted/50
+        hover:border-accent/30
       "
     >
       {/* Tweet Header - Like a real tweet */}
