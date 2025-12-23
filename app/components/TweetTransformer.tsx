@@ -3,6 +3,7 @@
 import { useState, useCallback, useEffect } from "react";
 import { ContextButton, ContextPanel } from "./ContextSettings";
 import { FilterButton, FilterPanel, type Filters } from "./FilterOptions";
+import TweetPreview from "./TweetPreview";
 
 const DEFAULT_FILTERS: Filters = {
   maxChars: 280,
@@ -123,7 +124,7 @@ export default function TweetTransformer() {
         disabled={!draftTweet.trim() || isLoading}
         className="w-full rounded-lg bg-foreground px-6 py-3 text-sm font-medium text-background transition-all hover:bg-foreground/90 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40"
       >
-        {isLoading ? "Transforming..." : "Transform"}
+        {isLoading ? "Creating..." : "Create Social"}
       </button>
 
       {/* Error Message */}
@@ -133,22 +134,10 @@ export default function TweetTransformer() {
         </p>
       )}
 
-      {/* Output Section */}
-      {transformedTweet && (
-        <div className="space-y-2">
-          <label className="block text-xs font-medium uppercase tracking-wider text-muted">
-            Result
-          </label>
-          <div className="rounded-lg border border-border bg-card px-4 py-3 text-sm text-foreground">
-            {transformedTweet}
-          </div>
-          <div className="flex justify-end">
-            <span className="text-xs tabular-nums text-muted">
-              {transformedTweet.length} / 280
-            </span>
-          </div>
-        </div>
-      )}
+      {/* Output Section - Always visible */}
+      <div className="mt-6 border-t border-border pt-6">
+        <TweetPreview content={transformedTweet || null} isLoading={isLoading} />
+      </div>
     </div>
   );
 }
