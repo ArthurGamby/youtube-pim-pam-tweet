@@ -66,21 +66,23 @@ export default function LibraryPanel({ isOpen, onClose, onUseAsDraft }: LibraryP
     <>
       {/* Backdrop */}
       <div
-        className={`
-          fixed inset-0 bg-background/60 backdrop-blur-sm z-40
-          transition-opacity duration-300
-          ${isOpen ? "opacity-100" : "opacity-0 pointer-events-none"}
-        `}
+        style={{
+          opacity: isOpen ? 1 : 0,
+          transition: "opacity 0.35s cubic-bezier(0.32, 0.72, 0, 1)",
+          pointerEvents: isOpen ? "auto" : "none",
+        }}
+        className="fixed inset-0 bg-background/60 backdrop-blur-sm z-40"
         onClick={onClose}
       />
 
       {/* Panel */}
       <div
-        className={`
-          fixed top-0 right-0 h-full w-full sm:w-[360px] bg-background border-l border-border z-50
-          transform transition-transform duration-300 ease-out
-          ${isOpen ? "translate-x-0" : "translate-x-full"}
-        `}
+        style={{
+          transform: isOpen ? "translateX(0)" : "translateX(100%)",
+          transition: "transform 0.35s cubic-bezier(0.32, 0.72, 0, 1)",
+          willChange: "transform",
+        }}
+        className="fixed top-0 right-0 h-full w-full sm:w-[360px] bg-background border-l border-border z-50"
       >
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-border">
@@ -121,15 +123,20 @@ export default function LibraryPanel({ isOpen, onClose, onUseAsDraft }: LibraryP
               </p>
             </div>
           ) : (
-            // Tweet list
+            // Tweet list with staggered animation
             <div className="space-y-3">
-              {tweets.map((tweet) => (
-                <SavedTweetCard
+              {tweets.map((tweet, index) => (
+                <div
                   key={tweet.id}
-                  tweet={tweet}
-                  onUseAsDraft={handleUseAsDraft}
-                  onDelete={handleDelete}
-                />
+                  className="animate-slide-down"
+                  style={{ animationDelay: `${index * 60}ms` }}
+                >
+                  <SavedTweetCard
+                    tweet={tweet}
+                    onUseAsDraft={handleUseAsDraft}
+                    onDelete={handleDelete}
+                  />
+                </div>
               ))}
             </div>
           )}

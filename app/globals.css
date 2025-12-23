@@ -118,6 +118,23 @@ textarea::-webkit-scrollbar-thumb:hover {
   }
 }
 
+/* Staggered slide-down animation for list items */
+@keyframes slide-down-fade {
+  from {
+    opacity: 0;
+    transform: translateY(-12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-slide-down {
+  animation: slide-down-fade 0.3s cubic-bezier(0.32, 0.72, 0, 1) forwards;
+  opacity: 0;
+}
+
 .animate-in {
   animation: zoom-in 0.2s ease-out forwards;
 }
@@ -133,9 +150,11 @@ textarea::-webkit-scrollbar-thumb:hover {
     0 0 0 1px rgba(255, 255, 255, 0.03);
 }
 
-/* Theme transition for all themed elements */
-* {
-  transition: background-color 0.3s ease, border-color 0.3s ease, color 0.15s ease;
+/* Theme transition for themed elements (excluding transform for slide panels) */
+*:not([style*="transform"]) {
+  transition-property: background-color, border-color, color;
+  transition-duration: 0.3s, 0.3s, 0.15s;
+  transition-timing-function: ease;
 }
 
 /* Disable transitions on page load */
