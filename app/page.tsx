@@ -1,14 +1,19 @@
+import Image from "next/image";
 import TweetTransformer from "./components/TweetTransformer";
 
 export default function Home() {
   return (
     <div className="flex min-h-screen flex-col items-center px-4 py-16">
       {/* Header */}
-      <header className="mb-12 text-center">
-        <h1 className="text-xl font-medium tracking-tight text-foreground">
-          pimpamtweet
-        </h1>
-        <p className="mt-1 text-xs text-muted">
+      <header className="mb-12 flex flex-col items-center">
+        <Image
+          src="/icon-logo.png"
+          alt="PimpAmTweet"
+          width={80}
+          height={80}
+          className="mb-3"
+        />
+        <p className="text-xs text-muted">
           polish your tweets with AI
         </p>
       </header>
