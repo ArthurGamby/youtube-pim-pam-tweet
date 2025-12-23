@@ -1,0 +1,20 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../app/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// SavedTweet model for PimpAmTweet
+model SavedTweet {
+  id          String   @id @default(cuid())
+  original    String   // The draft tweet input
+  transformed String   // The polished/transformed tweet
+  context     String?  // Optional user context/style used for transformation
+  imageUrl    String?  // Optional image URL attached to the tweet
+  imageAlt    String?  // Optional alt text for accessibility
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
