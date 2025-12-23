@@ -1,18 +1,40 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
+import { User, ChevronDown } from "lucide-react";
 
 const STORAGE_KEY = "pimpamtweet-context";
 
 type ContextSettingsProps = {
+  isOpen: boolean;
+  onToggle: () => void;
   onContextChange: (context: string) => void;
 };
 
-export default function ContextSettings({ onContextChange }: ContextSettingsProps) {
-  const [isOpen, setIsOpen] = useState(false);
+export function ContextButton({ isOpen, onToggle, hasContext }: { isOpen: boolean; onToggle: () => void; hasContext: boolean }) {
+  return (
+    <button
+      onClick={onToggle}
+      className={`flex flex-1 items-center justify-between rounded-lg border px-3 py-2.5 text-sm transition-colors ${
+        isOpen ? "border-muted bg-card" : "border-border bg-card hover:border-muted"
+      }`}
+    >
+      <span className="flex items-center gap-2 text-muted">
+        <User size={14} />
+        <span>Context</span>
+        {hasContext && <span className="h-1.5 w-1.5 rounded-full bg-foreground" />}
+      </span>
+      <ChevronDown
+        size={14}
+        className={`text-muted transition-transform ${isOpen ? "rotate-180" : ""}`}
+      />
+    </button>
+  );
+}
+
+export function ContextPanel({ onContextChange }: { onContextChange: (context: string) => void }) {
   const [context, setContext] = useState("");
 
-  // Load context from localStorage on mount
   useEffect(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
@@ -21,7 +43,6 @@ export default function ContextSettings({ onContextChange }: ContextSettingsProp
     }
   }, [onContextChange]);
 
-  // Save context to localStorage when it changes
   const handleContextChange = (value: string) => {
     setContext(value);
     localStorage.setItem(STORAGE_KEY, value);
@@ -29,48 +50,45 @@ export default function ContextSettings({ onContextChange }: ContextSettingsProp
   };
 
   return (
-    <div className="w-full">
-      {/* Toggle Button */}
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="flex w-full items-center justify-between rounded-lg border border-border bg-card px-4 py-3 text-sm transition-colors hover:border-muted"
-      >
-        <span className="text-muted">
-          {context ? "Context configured" : "Add context (optional)"}
-        </span>
-        <svg
-          className={`h-4 w-4 text-muted transition-transform ${isOpen ? "rotate-180" : ""}`}
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-        >
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-        </svg>
-      </button>
-
-      {/* Collapsible Content */}
-      {isOpen && (
-        <div className="mt-3 space-y-2">
-          <label 
-            htmlFor="context" 
-            className="block text-xs font-medium uppercase tracking-wider text-muted"
-          >
-            Your Style / Tone
-          </label>
-          <textarea
-            id="context"
-            value={context}
-            onChange={(e) => handleContextChange(e.target.value)}
-            placeholder="E.g., I'm a developer who shares coding tips. I like to be friendly and use simple language. I sometimes use emojis..."
-            rows={3}
-            className="w-full resize-none rounded-lg border border-border bg-card px-4 py-3 text-sm text-foreground placeholder-muted/60 transition-colors focus:border-muted"
-          />
-          <p className="text-xs text-muted/60">
-            This context will be used for all your transformations
-          </p>
-        </div>
-      )}
-    </div>
+    <textarea
+      value={context}
+      onChange={(e) => handleContextChange(e.target.value)}
+      placeholder="Your style: e.g., Developer, friendly tone, occasional emojis..."
+      rows={2}
+      className="w-full resize-none rounded-lg border border-border bg-card px-4 py-3 text-sm text-foreground placeholder-muted/60 transition-colors focus:border-muted"
+    />
   );
 }
 
+export default function ContextSettings({ isOpen, onToggle, onContextChange }: ContextSettingsProps) {
+  const [hasContext, setHasContext] = useState(false);
+
+  useEffect(() => {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    setHasContext(!!saved);
+  }, []);
+
+  const handleContextChange = (value: string) => {
+    setHasContext(!!value);
+    onContextChange(value);
+  };
+
+  return { isOpen, onToggle, hasContext, onContextChange: handleContextChange };
+}
+
+// Export hook for parent to use
+export function useContextState(onContextChange: (context: string) => void) {
+  const [hasContext, setHasContext] = useState(false);
+
+  useEffect(() => {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    setHasContext(!!saved);
+  }, []);
+
+  const handleContextChange = (value: string) => {
+    setHasContext(!!value);
+    onContextChange(value);
+  };
+
+  return { hasContext, handleContextChange };
+}

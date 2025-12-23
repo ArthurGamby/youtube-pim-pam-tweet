@@ -1,7 +1,17 @@
 "use client";
 
-import { useState, useCallback } from "react";
-import ContextSettings from "./ContextSettings";
+import { useState, useCallback, useEffect } from "react";
+import { ContextButton, ContextPanel } from "./ContextSettings";
+import { FilterButton, FilterPanel, type Filters } from "./FilterOptions";
+
+const DEFAULT_FILTERS: Filters = {
+  maxChars: 280,
+  emojiMode: "few",
+};
+
+const CONTEXT_STORAGE_KEY = "pimpamtweet-context";
+
+type OpenPanel = "none" | "context" | "filters";
 
 export default function TweetTransformer() {
   // State management
@@ -10,15 +20,28 @@ export default function TweetTransformer() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [context, setContext] = useState("");
+  const [hasContext, setHasContext] = useState(false);
+  const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS);
+  const [openPanel, setOpenPanel] = useState<OpenPanel>("none");
+
+  // Load context indicator on mount
+  useEffect(() => {
+    const saved = localStorage.getItem(CONTEXT_STORAGE_KEY);
+    setHasContext(!!saved);
+  }, []);
 
   // Memoized callback for context changes
   const handleContextChange = useCallback((newContext: string) => {
     setContext(newContext);
+    setHasContext(!!newContext);
   }, []);
+
+  // Toggle panels
+  const toggleContext = () => setOpenPanel(openPanel === "context" ? "none" : "context");
+  const toggleFilters = () => setOpenPanel(openPanel === "filters" ? "none" : "filters");
 
   // Call the transform API
   const handleTransform = async () => {
-    // Reset states
     setError("");
     setTransformedTweet("");
     setIsLoading(true);
@@ -26,13 +49,8 @@ export default function TweetTransformer() {
     try {
       const response = await fetch("/api/transform", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ 
-          draft: draftTweet,
-          context: context, // Send context to API
-        }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ draft: draftTweet, context, filters }),
       });
 
       const data = await response.json();
@@ -53,9 +71,28 @@ export default function TweetTransformer() {
   const isOverLimit = charCount > 280;
 
   return (
-    <div className="w-full space-y-6">
-      {/* Context Settings */}
-      <ContextSettings onContextChange={handleContextChange} />
+    <div className="w-full space-y-3">
+      {/* Settings Row - Buttons always inline */}
+      <div className="flex gap-2">
+        <ContextButton
+          isOpen={openPanel === "context"}
+          onToggle={toggleContext}
+          hasContext={hasContext}
+        />
+        <FilterButton
+          isOpen={openPanel === "filters"}
+          onToggle={toggleFilters}
+          filters={filters}
+        />
+      </div>
+
+      {/* Expanded Panel - Below the buttons row */}
+      {openPanel === "context" && (
+        <ContextPanel onContextChange={handleContextChange} />
+      )}
+      {openPanel === "filters" && (
+        <FilterPanel filters={filters} onFiltersChange={setFilters} />
+      )}
 
       {/* Input Section */}
       <div className="space-y-2">
