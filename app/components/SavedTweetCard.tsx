@@ -9,6 +9,8 @@ type SavedTweet = {
   original: string;
   transformed: string;
   context: string | null;
+  imageUrl: string | null;
+  imageAlt: string | null;
   createdAt: Date;
 };
 
@@ -107,9 +109,20 @@ export default function SavedTweetCard({ tweet, onUseAsDraft, onDelete }: SavedT
       </div>
 
       {/* Tweet Content */}
-      <p className="text-sm text-foreground leading-relaxed">
+      <p className="text-sm text-foreground leading-relaxed whitespace-pre-wrap">
         {tweet.transformed}
       </p>
+
+      {/* Tweet Image */}
+      {tweet.imageUrl && (
+        <div className="mt-3 rounded-xl overflow-hidden border border-border">
+          <img
+            src={tweet.imageUrl}
+            alt={tweet.imageAlt || "Tweet attachment"}
+            className="w-full max-h-48 object-cover"
+          />
+        </div>
+      )}
 
       {/* Footer with actions - always visible but subtle */}
       <div className="mt-3 pt-3 border-t border-border flex items-center justify-between">

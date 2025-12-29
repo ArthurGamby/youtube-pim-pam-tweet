@@ -1,8 +1,9 @@
 "use client";
 
 import Image from "next/image";
-import { Copy, Check, Bookmark, Loader2 } from "lucide-react";
+import { Copy, Check, Bookmark, Loader2, ImagePlus, X } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
+import { useUploadThing } from "@/app/lib/uploadthing";
 
 type TweetPreviewProps = {
   content: string | null;
@@ -17,14 +18,58 @@ export default function TweetPreview({ content, original, context, isLoading, on
   const [saved, setSaved] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const previousContentRef = useRef<string | null>(null);
+  
+  // Image state - file stored locally, only upload on save
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // UploadThing hook for programmatic upload
+  const { startUpload, isUploading } = useUploadThing("tweetImage");
 
-  // Reset saved state when content changes (new tweet generated)
+  // Reset saved state and image when content changes (new tweet generated)
   useEffect(() => {
     if (content !== previousContentRef.current) {
       setSaved(false);
       previousContentRef.current = content;
+      // Also clear image when generating new tweet
+      if (content !== null && previousContentRef.current !== null) {
+        handleRemoveImage();
+      }
     }
   }, [content]);
+
+  // Cleanup object URL on unmount or when preview changes
+  useEffect(() => {
+    return () => {
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+      }
+    };
+  }, [previewUrl]);
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Revoke previous URL if exists
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+      }
+      setSelectedFile(file);
+      setPreviewUrl(URL.createObjectURL(file));
+    }
+  };
+
+  const handleRemoveImage = () => {
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+    }
+    setSelectedFile(null);
+    setPreviewUrl(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
 
   const handleCopy = async () => {
     if (!content) return;
@@ -38,6 +83,16 @@ export default function TweetPreview({ content, original, context, isLoading, on
     setIsSaving(true);
 
     try {
+      let imageUrl: string | null = null;
+
+      // Upload image if selected
+      if (selectedFile) {
+        const uploadResult = await startUpload([selectedFile]);
+        if (uploadResult && uploadResult[0]) {
+          imageUrl = uploadResult[0].ufsUrl;
+        }
+      }
+
       const response = await fetch("/api/tweets", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -45,6 +100,7 @@ export default function TweetPreview({ content, original, context, isLoading, on
           original,
           transformed: content,
           context: context || null,
+          imageUrl,
         }),
       });
 
@@ -64,6 +120,7 @@ export default function TweetPreview({ content, original, context, isLoading, on
 
   // 3 states: empty, loading, content
   const hasContent = !!content;
+  const isProcessing = isSaving || isUploading;
 
   return (
     <div className="space-y-2">
@@ -76,7 +133,7 @@ export default function TweetPreview({ content, original, context, isLoading, on
             {/* Save Button */}
             <button
               onClick={handleSave}
-              disabled={isSaving || saved}
+              disabled={isProcessing || saved}
               className={`
                 group relative flex items-center gap-1.5 rounded-md px-2 py-1 text-xs
                 transition-all duration-200 ease-out
@@ -84,11 +141,11 @@ export default function TweetPreview({ content, original, context, isLoading, on
                   ? "bg-emerald-500/10 text-emerald-400" 
                   : "text-muted hover:bg-foreground/5 hover:text-foreground"
                 }
-                ${isSaving ? "cursor-wait" : ""}
+                ${isProcessing ? "cursor-wait" : ""}
               `}
             >
               <span className="relative flex items-center justify-center w-3 h-3">
-                {isSaving ? (
+                {isProcessing ? (
                   <Loader2 size={12} className="animate-spin" />
                 ) : saved ? (
                   <Check size={12} className="animate-in zoom-in-50 duration-200" />
@@ -100,7 +157,7 @@ export default function TweetPreview({ content, original, context, isLoading, on
                 )}
               </span>
               <span className="transition-opacity duration-200">
-                {isSaving ? "Saving" : saved ? "Saved" : "Save"}
+                {isUploading ? "Uploading..." : isSaving ? "Saving..." : saved ? "Saved" : "Save"}
               </span>
             </button>
 
@@ -165,7 +222,7 @@ export default function TweetPreview({ content, original, context, isLoading, on
           </div>
         ) : hasContent ? (
           // Content state - the tweet
-          <p className="text-sm leading-relaxed text-foreground">
+          <p className="text-sm leading-relaxed text-foreground whitespace-pre-wrap">
             {content}
           </p>
         ) : (
@@ -177,14 +234,62 @@ export default function TweetPreview({ content, original, context, isLoading, on
           </p>
         )}
 
+        {/* Image Preview */}
+        {previewUrl && (
+          <div className="relative mt-3 rounded-xl overflow-hidden border border-border">
+            <img
+              src={previewUrl}
+              alt="Tweet attachment"
+              className="w-full max-h-72 object-cover"
+            />
+            {!saved && (
+              <button
+                onClick={handleRemoveImage}
+                className="absolute top-2 right-2 p-1.5 rounded-full bg-black/60 text-white hover:bg-black/80 transition-colors"
+                aria-label="Remove image"
+              >
+                <X size={14} />
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* Image Picker - only show when there's content and no image yet */}
+        {hasContent && !previewUrl && !saved && (
+          <div className="mt-3">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleFileSelect}
+              className="hidden"
+              id="tweet-image-input"
+            />
+            <label
+              htmlFor="tweet-image-input"
+              className="flex items-center gap-2 px-3 py-2 rounded-lg border border-dashed border-border text-muted hover:text-foreground hover:border-accent/50 transition-colors cursor-pointer text-xs"
+            >
+              <ImagePlus size={14} />
+              <span>Add image</span>
+            </label>
+          </div>
+        )}
+
         {/* Tweet Footer */}
         <div className="mt-3 flex items-center justify-between border-t border-border pt-3">
           {isLoading ? (
             <div className="h-3 w-24 animate-pulse rounded bg-border" />
           ) : hasContent ? (
-            <span className="text-xs tabular-nums text-muted">
-              {content?.length} / 280 characters
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="text-xs tabular-nums text-muted">
+                {content?.length} / 280 characters
+              </span>
+              {selectedFile && (
+                <span className="text-xs text-accent">
+                  + image
+                </span>
+              )}
+            </div>
           ) : (
             <span className="text-xs text-muted/50">
               prisma.io
